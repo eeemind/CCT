@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCT Game</title>
+<style>
+body { font-family: Arial; display:flex; flex-direction:column; align-items:center; background:#111; color:white; }
+.container { margin-top:20px; text-align:center; }
+.settings { margin-top:20px; }
+input, button, select { padding:8px; margin:5px; font-size:16px; }
+#feedback { margin:10px; }
+.dot { height:12px; width:12px; border-radius:50%; display:inline-block; margin:3px; }
+.green { background:lime; }
+.red { background:red; }
+.info { margin:6px; }
+#intervalStats { margin:10px; font-size:14px; color:#ccc; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Cognitive Control Training</h1>
+
+<div id="intervalStats"></div>
+
+<div class="info">Current Interval: <span id="currentInterval">1000</span> ms</div>
+<div class="info">Time Left: <span id="timeLeft">0</span>s</div>
+
+<div id="feedback"></div>
+<input type="number" id="answer" placeholder="Enter sum" disabled>
+
+<div class="settings">
+Interval (ms): <input type="number" id="interval" value="1000" min="200" max="1000" step="100"><br>
+Duration (minutes): <input type="number" id="duration" value="1" min="1"><br>
+Gamemode:
+<select id="mode">
+<option value="normal">Normal</option>
+<option value="accuracy">High Accuracy</option>
+</select><br>
+<label><input type="checkbox" id="beepToggle"> Beep on error</label>
+</div>
+
+<button id="startBtn">Start</button>
+</div>
+
+<script>
+let interval=1000, startInterval=1000;
+let numbers=[], feedback=[];
+let correctStreak=0, wrongStreak=0;
+let gameRunning=false, timeoutId, endTime;
+let awaitingAnswer=false, mode="normal", beepEnabled=false;
+
+// NEW: live time tracking
+let intervalCounts={}, intervalTime={}, currentIntervalStart=0;
+
+function speak(num){
+  if(!('speechSynthesis'in window))return;
+  try{
+    const u=new SpeechSynthesisUtterance(num.toString());
+    window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+
+function playBeep(){
+  if(!beepEnabled)return;
+  const ctx=new (window.AudioContext||window.webkitAudioContext)();
+  const o=ctx.createOscillator();
+  const g=ctx.createGain();
+  o.frequency.value=1200; g.gain.value=0.1;
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime+0.08);
+}
+
+function getRandomNumber(){return Math.floor(Math.random()*9)+1;}
+
+function updateFeedbackUI(){
+  const fb=document.getElementById("feedback"); fb.innerHTML="";
+  feedback.slice(-4).forEach(f=>{
+    const d=document.createElement("span");
+    d.className=`dot ${f?"green":"red"}`;
+    fb.appendChild(d);
+  });
+}
+
+// FIX: continuously update time
+function tickIntervalTime(){
+  if(!gameRunning) return;
+
+  const now=Date.now();
+
+  if(interval !== startInterval || intervalCounts[interval]){
+    intervalTime[interval]=(intervalTime[interval]||0)+(now-currentIntervalStart);
+  }
+
+  currentIntervalStart=now;
+  updateIntervalStats();
+
+  requestAnimationFrame(tickIntervalTime);
+}
+
+function updateIntervalStats(){
+  const el=document.getElementById("intervalStats"); el.innerHTML="";
+
+  Object.keys(intervalCounts)
+    .sort((a,b)=>b-a)
+    .forEach(k=>{
+      const time=(intervalTime[k]||0)/1000;
+      const div=document.createElement("div");
+      div.textContent = k + "ms: " + intervalCounts[k] + "  —  " + time.toFixed(1) + "s"; // EXACT 3 spaces
+      el.appendChild(div);
+    });
+}
+
+function getThresholds(){
+  return mode==="accuracy"?{correct:5,wrong:3}:{correct:4,wrong:4};
+}
+
+function changeInterval(newInterval){
+  if(newInterval===interval) return;
+
+  const now=Date.now();
+
+  // finalize previous interval time
+  if(interval !== startInterval || intervalCounts[interval]){
+    intervalTime[interval]=(intervalTime[interval]||0)+(now-currentIntervalStart);
+  }
+
+  interval=newInterval;
+  currentIntervalStart=now;
+
+  // count AFTER first change rule
+  intervalCounts[interval]=(intervalCounts[interval]||0)+1;
+
+  updateIntervalStats();
+}
+
+function adjustDifficulty(){
+  const t=getThresholds();
+
+  if(correctStreak>=t.correct){
+    changeInterval(Math.max(200,interval-100));
+    correctStreak=0;
+  }
+
+  if(wrongStreak>=t.wrong){
+    changeInterval(Math.min(1000,interval+100));
+    wrongStreak=0;
+  }
+
+  document.getElementById("currentInterval").textContent=interval;
+}
+
+function registerWrong(){
+  feedback.push(false);
+  wrongStreak++;
+  correctStreak=0;
+  playBeep();
+  updateFeedbackUI();
+  adjustDifficulty();
+}
+
+function gameLoop(){
+  if(!gameRunning)return;
+
+  if(awaitingAnswer && numbers.length>=2) registerWrong();
+
+  const num=getRandomNumber(); numbers.push(num);
+  speak(num);
+
+  awaitingAnswer=true;
+  timeoutId=setTimeout(gameLoop,interval);
+}
+
+function updateTimer(){
+  if(!gameRunning)return;
+  const r=Math.max(0,Math.floor((endTime-Date.now())/1000));
+  document.getElementById("timeLeft").textContent=r;
+  if(r<=0) stopGame(); else requestAnimationFrame(updateTimer);
+}
+
+function startGame(){
+  interval=parseInt(intervalInput.value);
+  startInterval=interval;
+  const duration=parseInt(durationInput.value)*60000;
+  mode=modeSelect.value;
+  beepEnabled=beepToggle.checked;
+
+  numbers=[]; feedback=[];
+  correctStreak=0; wrongStreak=0;
+  intervalCounts={}; intervalTime={};
+
+  gameRunning=true;
+  awaitingAnswer=false;
+
+  endTime=Date.now()+duration;
+  currentIntervalStart=Date.now();
+
+  answer.disabled=false;
+  answer.value="";
+  answer.focus();
+
+  currentInterval.textContent=interval;
+  intervalStats.innerHTML="";
+
+  setTimeout(()=>{
+    gameLoop();
+    updateTimer();
+    tickIntervalTime(); // START CONTINUOUS TRACKING
+  },100);
+}
+
+function stopGame(){
+  gameRunning=false;
+  clearTimeout(timeoutId);
+
+  // finalize last interval
+  const now=Date.now();
+  if(interval !== startInterval || intervalCounts[interval]){
+    intervalTime[interval]=(intervalTime[interval]||0)+(now-currentIntervalStart);
+  }
+
+  updateIntervalStats();
+
+  answer.disabled=true;
+  timeLeft.textContent="0";
+}
+
+function checkInputLive(){
+  if(!awaitingAnswer || numbers.length<2)return;
+
+  const val=parseInt(answer.value);
+  const correct=numbers[numbers.length-1]+numbers[numbers.length-2];
+
+  if(val===correct){
+    feedback.push(true);
+    correctStreak++;
+    wrongStreak=0;
+
+    awaitingAnswer=false;
+    answer.value="";
+
+    updateFeedbackUI();
+    adjustDifficulty();
+  }
+}
+
+const startBtn=document.getElementById("startBtn");
+const answer=document.getElementById("answer");
+const intervalInput=document.getElementById("interval");
+const durationInput=document.getElementById("duration");
+const modeSelect=document.getElementById("mode");
+const beepToggle=document.getElementById("beepToggle");
+const currentInterval=document.getElementById("currentInterval");
+const timeLeft=document.getElementById("timeLeft");
+const intervalStats=document.getElementById("intervalStats");
+
+startBtn.onclick=startGame;
+answer.addEventListener("input",checkInputLive);
+</script>
+</body>
+</html>
