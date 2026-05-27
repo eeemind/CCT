@@ -15,6 +15,7 @@ input, button, select { padding:8px; margin:5px; font-size:16px; }
 .red { background:red; }
 .info { margin:6px; }
 #intervalStats { margin:10px; font-size:14px; color:#ccc; }
+.footer { margin-top: 200px; }
 </style>
 </head>
 <body>
@@ -42,7 +43,11 @@ Gamemode:
 
 <button id="startBtn">Start</button>
 </div>
-
+<div class="footer">
+Note: interval may appear as double what it shows on other CCT tools</br>
+beep might not work</br>
+<a href="https://discord.gg/brain">Mindbuilding Discord</a>
+</div>
 <script>
 let interval=1000, startInterval=1000;
 let numbers=[], feedback=[];
