@@ -1,0 +1,1680 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cognitive Control Training</title>
+  <style>
+    :root {
+      --bg: #111;
+      --panel: rgba(22, 22, 22, 0.96);
+      --panel-2: rgba(32, 32, 32, 0.98);
+      --border: rgba(255, 255, 255, 0.12);
+      --text: #f3f3f3;
+      --muted: #b8b8b8;
+      --accent: #6ee7a8;
+      --accent-2: #78b7ff;
+      --danger: #ff7474;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: radial-gradient(circle at top, #1b1b1b, var(--bg) 55%);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      padding: 0 0 36px;
+    }
+
+    button, input, select {
+      font: inherit;
+    }
+
+    .top-controls {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .icon-button {
+      pointer-events: auto;
+      border: 1px solid var(--border);
+      background: rgba(20, 20, 20, 0.78);
+      color: var(--text);
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .icon-button:hover {
+      background: rgba(35, 35, 35, 0.92);
+    }
+
+    #settingsBtn {
+      margin-left: 0;
+    }
+
+    #progressBtn {
+      margin-left: auto;
+    }
+
+    #topRightStat {
+      pointer-events: none;
+      margin-left: auto;
+      margin-right: 10px;
+      font-size: 14px;
+      color: var(--muted);
+      background: rgba(0, 0, 0, 0.26);
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      min-width: 110px;
+      text-align: center;
+    }
+
+    .container {
+      margin-top: 90px;
+      text-align: center;
+      width: min(920px, 94vw);
+      padding-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: 0.2px;
+    }
+
+    #intervalStats {
+      margin: 12px auto 8px;
+      font-size: 14px;
+      color: #d4d4d4;
+      line-height: 1.35;
+      min-height: 20px;
+      width: fit-content;
+      text-align: left;
+      display: none;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 14px;
+      backdrop-filter: blur(8px);
+    }
+
+    #intervalStats.visible {
+      display: block;
+    }
+
+    .info {
+      margin: 8px 0;
+      color: #e8e8e8;
+    }
+
+    #feedback {
+      margin: 12px 0 10px;
+      min-height: 20px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .dot {
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+    }
+
+    .green { background: #33e36b; }
+    .red { background: #ff5252; }
+
+    #answerArea {
+      margin-top: 10px;
+      min-height: 58px;
+    }
+
+    #answer {
+      width: min(220px, 90vw);
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      outline: none;
+      text-align: center;
+    }
+
+    #buttonAnswers {
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    #buttonAnswers button {
+      min-width: 56px;
+      margin: 0;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      padding: 9px 12px;
+      cursor: pointer;
+    }
+
+    #buttonAnswers button:hover {
+      background: rgba(255, 255, 255, 0.11);
+    }
+
+    .main-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    #startBtn {
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 1px solid rgba(110, 231, 168, 0.28);
+      background: linear-gradient(180deg, rgba(110, 231, 168, 0.24), rgba(110, 231, 168, 0.12));
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      width: min(410px, 92vw);
+      z-index: 50;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      overflow-y: auto;
+      transform: translateX(-105%);
+      transition: transform 0.28s ease;
+      padding: 18px 18px 28px;
+    }
+
+    .drawer.right {
+      right: 0;
+      left: auto;
+      border-right: none;
+      border-left: 1px solid var(--border);
+      transform: translateX(105%);
+    }
+
+    .drawer.open {
+      transform: translateX(0);
+    }
+
+    .drawer h2 {
+      margin: 6px 0 14px;
+      font-size: 24px;
+    }
+
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .drawer-close {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .section {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .section h3,
+    .section summary {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .setting-row {
+      display: grid;
+      grid-template-columns: 1fr 120px;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+
+    .setting-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .setting-row label {
+      color: #e8e8e8;
+      line-height: 1.3;
+    }
+
+    .setting-row input[type="number"],
+    .setting-row input[type="range"],
+    .setting-row select {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      outline: none;
+    }
+
+    .setting-row.inline {
+      grid-template-columns: 1fr;
+    }
+
+    .setting-row.toggle {
+      grid-template-columns: 1fr auto;
+    }
+
+    .setting-row.toggle input {
+      transform: scale(1.08);
+    }
+
+    details {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    details summary {
+      cursor: pointer;
+      list-style: none;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details[open] summary {
+      margin-bottom: 12px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #c9c9c9;
+      margin-top: 4px;
+      text-align: left;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    .progress-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .summary-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .summary-card .label {
+      display: block;
+      color: #bbbbbb;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .summary-card .value {
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .calendar-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .calendar-toolbar button {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .calendar-cell,
+    .calendar-head {
+      border-radius: 12px;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .calendar-head {
+      font-size: 12px;
+      color: #cacaca;
+      min-height: 24px;
+    }
+
+    .calendar-cell {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: #eee;
+      cursor: pointer;
+      padding: 4px 6px;
+      position: relative;
+      overflow: hidden;
+      min-height: 42px;
+    }
+
+    .calendar-cell.empty {
+      border: none;
+      background: transparent;
+      cursor: default;
+    }
+
+    .calendar-cell.has-data {
+      color: #0c1c12;
+      font-weight: bold;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.1) inset;
+    }
+
+    .calendar-cell.selected {
+      outline: 2px solid var(--accent-2);
+      outline-offset: 1px;
+    }
+
+    .calendar-cell .day-number {
+      position: relative;
+      z-index: 1;
+      font-size: 13px;
+    }
+
+    .progress-detail {
+      text-align: left;
+      margin-top: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 12px;
+    }
+
+    .progress-detail h4 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    #daySummary {
+      color: #dcdcdc;
+      margin-bottom: 10px;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .chart-wrap {
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 10px;
+      overflow-x: auto;
+    }
+
+
+    .chart-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .threshold-filter-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .threshold-filter-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .threshold-filter-item input {
+      margin: 0;
+    }
+
+    .danger-button {
+      border: 1px solid rgba(255, 112, 112, 0.35);
+      background: rgba(255, 84, 84, 0.14);
+      color: #ffdada;
+      padding: 10px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+
+    .danger-button:hover {
+      background: rgba(255, 84, 84, 0.22);
+    }
+
+    #intervalChart {
+      display: block;
+      width: 100%;
+      min-width: 300px;
+      height: 260px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .data-table th,
+    .data-table td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 8px 6px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .data-table th {
+      color: #cfcfcf;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 100px;
+      text-align: center;
+      color: #d7d7d7;
+      width: min(920px, 94vw);
+    }
+
+    .footer a {
+      color: #9fd6ff;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 720px) {
+      .container {
+        margin-top: 110px;
+      }
+      .setting-row {
+        grid-template-columns: 1fr;
+      }
+      .progress-summary {
+        grid-template-columns: 1fr;
+      }
+      .top-controls {
+        left: 10px;
+        right: 10px;
+      }
+      #topRightStat {
+        margin-right: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-controls">
+    <button id="settingsBtn" class="icon-button" aria-label="Open settings">⚙ Settings</button>
+    <div id="topRightStat">Avg Today: --</div>
+    <button id="progressBtn" class="icon-button" aria-label="Open progress">Progress</button>
+  </div>
+
+  
+  <aside id="settingsDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-header">
+      <h2>Settings</h2>
+      <button id="closeSettingsBtn" class="drawer-close">Close</button>
+    </div>
+
+    <div class="section">
+      <div class="setting-row">
+        <label for="sessionMode">Session mode</label>
+        <select id="sessionMode">
+          <option value="timer">Timer based</option>
+          <option value="correct">Correct answers based</option>
+        </select>
+      </div>
+
+      <div class="setting-row" id="durationRow">
+        <label for="duration">Duration (minutes)</label>
+        <input type="number" id="duration" value="1" min="1" step="1" />
+      </div>
+
+      <div class="setting-row" id="correctTargetRow">
+        <label for="correctTarget">Correct answers target</label>
+        <input type="number" id="correctTarget" value="20" min="1" step="1" />
+      </div>
+
+      <div class="setting-row">
+        <label for="interval">Starting interval (ms)</label>
+        <input type="number" id="interval" value="1000" min="200" max="1000" step="100" />
+      </div>
+
+      <div class="setting-row">
+        <label for="intervalStepUp">Interval step up (ms)</label>
+        <input type="number" id="intervalStepUp" value="100" min="1" step="1" />
+      </div>
+      <div class="setting-row">
+        <label for="intervalStepDown">Interval step down (ms)</label>
+        <input type="number" id="intervalStepDown" value="100" min="1" step="1" />
+      </div>
+
+      <div class="setting-row toggle">
+        <label for="beepToggle">Beep on error</label>
+        <input type="checkbox" id="beepToggle" />
+      </div>
+
+      <div class="setting-row">
+        <label for="beepVolume">Beep volume</label>
+        <input type="range" id="beepVolume" min="0" max="1" step="0.05" />
+      </div>
+
+      <div class="setting-row inline">
+        <button type="button" id="testBeepBtn">Test beep</button>
+      </div>
+
+      <div class="setting-row toggle">
+        <label for="buttonModeToggle">Use answer buttons</label>
+        <input type="checkbox" id="buttonModeToggle" />
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Digit sound</h3>
+      <div class="setting-row inline">
+        <button type="button" id="testVoiceBtn">Test voice</button>
+      </div>
+      <div class="hint">Voice speed is handled automatically to keep up with the session.</div>
+    </div>
+
+    <details id="advancedSettings">
+      <summary>Advanced settings</summary>
+
+      <div class="setting-row">
+        <label for="minInterval">Minimum interval (ms)</label>
+        <input type="number" id="minInterval" value="200" min="50" step="10" />
+      </div>
+      <div class="setting-row">
+        <label for="maxInterval">Maximum interval (ms)</label>
+        <input type="number" id="maxInterval" value="1000" min="50" step="10" />
+      </div>
+      <div class="setting-row toggle">
+        <label for="showIntervalTiming">Show interval timings and average</label>
+        <input type="checkbox" id="showIntervalTiming" checked />
+      </div>
+      <div class="setting-row">
+        <label for="correctThreshold">Correct answers in a row to speed up</label>
+        <input type="number" id="correctThreshold" value="4" min="1" step="1" />
+      </div>
+      <div class="setting-row">
+        <label for="wrongThreshold">Incorrect answers in a row to slow down</label>
+        <input type="number" id="wrongThreshold" value="4" min="1" step="1" />
+      </div>
+      <div class="hint">These thresholds replace the old normal/high accuracy modes.</div>
+    </details>
+  </aside>
+
+
+  <aside id="progressDrawer" class="drawer right" aria-hidden="true">
+    <div class="drawer-header">
+      <h2>Progress</h2>
+      <button id="closeProgressBtn" class="drawer-close">Close</button>
+    </div>
+
+    <div class="section">
+      <div class="progress-summary">
+        <div class="summary-card">
+          <span class="label">Training days</span>
+          <span class="value" id="progressDays">0</span>
+        </div>
+        <div class="summary-card">
+          <span class="label">Average time/day (last 7 days)</span>
+          <span class="value" id="weekAverage">--</span>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <div class="chart-toolbar">
+          <div>
+            <div style="font-weight: bold;">All days combined</div>
+            <div class="hint" style="margin:4px 0 0;">Select threshold groups to include in the combined chart.</div>
+          </div>
+          <div id="aggregateThresholdList" class="threshold-filter-list"></div>
+        </div>
+        <svg id="aggregateChart" viewBox="0 0 640 260" role="img" aria-label="Combined interval chart"></svg>
+      </div>
+
+      <div class="calendar-toolbar">
+        <button id="prevMonthBtn" type="button">←</button>
+        <div id="calendarMonthLabel" style="font-weight: bold;">Month</div>
+        <button id="nextMonthBtn" type="button">→</button>
+      </div>
+
+      <div id="calendarGrid" class="calendar-grid" aria-label="Training calendar"></div>
+
+      <div class="progress-detail">
+        <div id="daySummary">Tap a trained day to see its details.</div>
+
+        <div class="chart-wrap">
+          <svg id="intervalChart" viewBox="0 0 640 260" role="img" aria-label="Interval timing chart"></svg>
+        </div>
+
+        <div class="setting-row inline" style="margin-top: 10px;">
+          <button id="toggleAllTimingsBtn" type="button">Show all interval timings</button>
+        </div>
+
+        <div id="threshold-groups-host"></div>
+      </div>
+
+      <div class="section" style="margin-top: 12px;">
+        <button id="resetDataBtn" class="danger-button" type="button">Reset progress data</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="container">
+    <h1>Cognitive Control Training</h1>
+
+    <div id="intervalStats"></div>
+
+    <div class="info">Current Interval: <span id="currentInterval">1000</span> ms</div>
+    <div class="info"><span id="timeLeftLabel">Time Left:</span> <span id="timeLeft">0</span></div>
+
+    <div id="feedback"></div>
+
+    <div id="answerArea">
+      <input type="number" id="answer" placeholder="Enter sum" disabled />
+      <div id="buttonAnswers"></div>
+    </div>
+
+    <div class="main-actions">
+      <button id="startBtn">Start</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="https://discord.gg/brain">Mindbuilding Discord</a>
+  </div>
+
+  
+<script>
+  const SETTINGS_KEY = "cctSettingsData";
+  const STORAGE_KEY = "cctTrainingData";
+
+  const startBtn = document.getElementById("startBtn");
+  const answer = document.getElementById("answer");
+  const intervalInput = document.getElementById("interval");
+  const durationInput = document.getElementById("duration");
+  const correctTargetInput = document.getElementById("correctTarget");
+  const sessionModeInput = document.getElementById("sessionMode");
+  const intervalStepUpInput = document.getElementById("intervalStepUp");
+  const intervalStepDownInput = document.getElementById("intervalStepDown");
+  const beepToggle = document.getElementById("beepToggle");
+  const buttonModeToggle = document.getElementById("buttonModeToggle");
+  const currentIntervalEl = document.getElementById("currentInterval");
+  const timeLeftLabelEl = document.getElementById("timeLeftLabel");
+  const timeLeftEl = document.getElementById("timeLeft");
+  const intervalStatsEl = document.getElementById("intervalStats");
+  const buttonAnswersEl = document.getElementById("buttonAnswers");
+  const topRightStatEl = document.getElementById("topRightStat");
+  const feedbackEl = document.getElementById("feedback");
+
+  const settingsBtn = document.getElementById("settingsBtn");
+  const closeSettingsBtn = document.getElementById("closeSettingsBtn");
+  const settingsDrawer = document.getElementById("settingsDrawer");
+
+  const progressBtn = document.getElementById("progressBtn");
+  const closeProgressBtn = document.getElementById("closeProgressBtn");
+  const progressDrawer = document.getElementById("progressDrawer");
+
+  const testVoiceBtn = document.getElementById("testVoiceBtn");
+  const beepVolumeInput = document.getElementById("beepVolume");
+  const testBeepBtn = document.getElementById("testBeepBtn");
+
+  const minIntervalInput = document.getElementById("minInterval");
+  const maxIntervalInput = document.getElementById("maxInterval");
+  const showIntervalTimingInput = document.getElementById("showIntervalTiming");
+  const correctThresholdInput = document.getElementById("correctThreshold");
+  const wrongThresholdInput = document.getElementById("wrongThreshold");
+
+  const durationRow = document.getElementById("durationRow");
+  const correctTargetRow = document.getElementById("correctTargetRow");
+
+  const progressDaysEl = document.getElementById("progressDays");
+  const weekAverageEl = document.getElementById("weekAverage");
+  const aggregateThresholdListEl = document.getElementById("aggregateThresholdList");
+  const aggregateChart = document.getElementById("aggregateChart");
+  const calendarMonthLabel = document.getElementById("calendarMonthLabel");
+  const calendarGrid = document.getElementById("calendarGrid");
+  const daySummary = document.getElementById("daySummary");
+  const intervalChart = document.getElementById("intervalChart");
+  const toggleAllTimingsBtn = document.getElementById("toggleAllTimingsBtn");
+  const resetDataBtn = document.getElementById("resetDataBtn");
+
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const defaultSettings = {
+    interval: 1000,
+    duration: 1,
+    correctTarget: 20,
+    sessionMode: "timer",
+    intervalStepUp: 100,
+    intervalStepDown: 100,
+    beepEnabled: false,
+    buttonMode: false,
+    digitRate: 1,
+    beepVolume: 0.1,
+    minInterval: 200,
+    maxInterval: 1000,
+    showIntervalTiming: true,
+    correctThreshold: 4,
+    wrongThreshold: 4
+  };
+
+  let settings = { ...defaultSettings };
+  let trainingData = { version: 2, days: {} };
+
+  let interval = defaultSettings.interval;
+  let startInterval = defaultSettings.interval;
+  let numbers = [];
+  let feedback = [];
+  let correctStreak = 0;
+  let wrongStreak = 0;
+  let gameRunning = false;
+  let timeoutId = null;
+  let statsTickId = null;
+  let endTime = 0;
+  let awaitingAnswer = false;
+  let beepEnabled = false;
+  let buttonMode = false;
+  let currentIntervalChangeCounted = false;
+  let sessionMode = "timer";
+  let sessionCorrectTarget = 0;
+  let sessionCorrectRemaining = 0;
+
+  let intervalTimeByInterval = {};
+  let intervalCountsByInterval = {};
+  let intervalSamples = [];
+  let sessionStartMs = 0;
+  let sessionIntervalStartMs = 0;
+  let sessionCountableStartMs = 0;
+  let sessionGraceUntilMs = 0;
+  let currentSessionDayKey = todayKey();
+  let currentSessionThresholdKey = thresholdKeyFromSettings(settings);
+
+  let audioContext = null;
+  let progressMonth = new Date();
+  progressMonth.setDate(1);
+  let selectedProgressDate = null;
+
+  function localDateKey(date = new Date()) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+
+  function todayKey() { return localDateKey(new Date()); }
+
+  function thresholdKeyFromSettings(source = settings) {
+    const c = Math.max(1, Number(source.correctThreshold) || 4);
+    const w = Math.max(1, Number(source.wrongThreshold) || 4);
+    return `${c}-${w}`;
+  }
+
+  function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
+  function fmtSeconds(ms) { return `${(ms / 1000).toFixed(1)}s`; }
+  function fmtMinutes(ms) { return `${(ms / 60000).toFixed(1)} min`; }
+
+  function getSettingsPayload() {
+    return {
+      interval: parseInt(intervalInput.value, 10),
+      duration: parseInt(durationInput.value, 10),
+      correctTarget: parseInt(correctTargetInput.value, 10),
+      sessionMode: sessionModeInput.value,
+      intervalStepUp: parseInt(intervalStepUpInput.value, 10),
+      intervalStepDown: parseInt(intervalStepDownInput.value, 10),
+      beepEnabled: beepToggle.checked,
+      buttonMode: buttonModeToggle.checked,
+      beepVolume: parseFloat(beepVolumeInput.value),
+      minInterval: parseInt(minIntervalInput.value, 10),
+      maxInterval: parseInt(maxIntervalInput.value, 10),
+      showIntervalTiming: showIntervalTimingInput.checked,
+      correctThreshold: parseInt(correctThresholdInput.value, 10),
+      wrongThreshold: parseInt(wrongThresholdInput.value, 10)
+    };
+  }
+
+  function normalizeSettings(raw) {
+    const merged = { ...defaultSettings, ...(raw || {}) };
+    const legacyStep = Number(merged.intervalStep);
+    if (!Number.isFinite(Number(merged.intervalStepUp))) merged.intervalStepUp = Number.isFinite(legacyStep) ? legacyStep : defaultSettings.intervalStepUp;
+    if (!Number.isFinite(Number(merged.intervalStepDown))) merged.intervalStepDown = Number.isFinite(legacyStep) ? legacyStep : defaultSettings.intervalStepDown;
+    merged.intervalStepUp = Math.max(1, Number(merged.intervalStepUp) || defaultSettings.intervalStepUp);
+    merged.intervalStepDown = Math.max(1, Number(merged.intervalStepDown) || defaultSettings.intervalStepDown);
+    merged.minInterval = Math.max(10, Number(merged.minInterval) || defaultSettings.minInterval);
+    merged.maxInterval = Math.max(merged.minInterval, Number(merged.maxInterval) || defaultSettings.maxInterval);
+    merged.correctThreshold = Math.max(1, Number(merged.correctThreshold) || defaultSettings.correctThreshold);
+    merged.wrongThreshold = Math.max(1, Number(merged.wrongThreshold) || defaultSettings.wrongThreshold);
+    merged.digitRate = clamp(Number(merged.digitRate), 0.5, 2);
+    merged.beepVolume = clamp(Number(merged.beepVolume), 0, 1);
+    merged.interval = clamp(Number(merged.interval) || defaultSettings.interval, merged.minInterval, merged.maxInterval);
+    merged.duration = Math.max(1, Number(merged.duration) || defaultSettings.duration);
+    merged.correctTarget = Math.max(1, Number(merged.correctTarget) || defaultSettings.correctTarget);
+    merged.sessionMode = merged.sessionMode === "correct" ? "correct" : "timer";
+    return merged;
+  }
+
+  function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(getSettingsPayload())); }
+
+  function applySettingsToInputs() {
+    intervalInput.value = settings.interval;
+    durationInput.value = settings.duration;
+    correctTargetInput.value = settings.correctTarget;
+    sessionModeInput.value = settings.sessionMode;
+    intervalStepUpInput.value = settings.intervalStepUp;
+    intervalStepDownInput.value = settings.intervalStepDown;
+    beepToggle.checked = settings.beepEnabled;
+    buttonModeToggle.checked = settings.buttonMode;
+    beepVolumeInput.value = settings.beepVolume;
+    minIntervalInput.value = settings.minInterval;
+    maxIntervalInput.value = settings.maxInterval;
+    showIntervalTimingInput.checked = settings.showIntervalTiming;
+    correctThresholdInput.value = settings.correctThreshold;
+    wrongThresholdInput.value = settings.wrongThreshold;
+    syncIntervalBounds();
+    updateSessionModeUI();
+  }
+
+  function loadSettings() {
+    try {
+      const saved = localStorage.getItem(SETTINGS_KEY);
+      settings = normalizeSettings(saved ? JSON.parse(saved) : defaultSettings);
+    } catch (err) {
+      settings = { ...defaultSettings };
+    }
+    applySettingsToInputs();
+    syncUIFromSettings();
+  }
+
+  function syncIntervalBounds() {
+    const min = Math.max(10, parseInt(minIntervalInput.value, 10) || defaultSettings.minInterval);
+    const max = Math.max(min, parseInt(maxIntervalInput.value, 10) || defaultSettings.maxInterval);
+    intervalInput.min = String(min);
+    intervalInput.max = String(max);
+    intervalInput.step = String(Math.max(1, Math.min(
+      parseInt(intervalStepUpInput.value, 10) || defaultSettings.intervalStepUp,
+      parseInt(intervalStepDownInput.value, 10) || defaultSettings.intervalStepDown
+    )));
+    intervalInput.value = clamp(parseInt(intervalInput.value, 10) || min, min, max);
+    currentIntervalEl.textContent = intervalInput.value;
+  }
+
+  function updateSessionModeUI() {
+    sessionMode = sessionModeInput.value === "correct" ? "correct" : "timer";
+    const timerMode = sessionMode === "timer";
+    durationRow.classList.toggle("hidden", !timerMode);
+    correctTargetRow.classList.toggle("hidden", timerMode);
+    timeLeftLabelEl.textContent = timerMode ? "Time left:" : "Correct answers left:";
+  }
+
+  function syncUIFromSettings() {
+    const showTiming = showIntervalTimingInput.checked;
+    intervalStatsEl.classList.toggle("visible", showTiming);
+    topRightStatEl.classList.toggle("hidden", !showTiming);
+    if (!showTiming) {
+      intervalStatsEl.innerHTML = "";
+      topRightStatEl.textContent = "Avg Today: --";
+    }
+  }
+
+  function migrateSession(session) {
+    const s = session && typeof session === "object" ? session : {};
+    return {
+      totalTrainedMs: Math.max(0, Number(s.totalTrainedMs) || 0),
+      intervalTimeByInterval: { ...(s.intervalTimeByInterval || {}) },
+      intervalCountsByInterval: { ...(s.intervalCountsByInterval || {}) },
+      intervalSamples: Array.isArray(s.intervalSamples) ? s.intervalSamples.map(x => ({ interval: Number(x.interval) || 0, elapsedMs: Math.max(0, Number(x.elapsedMs) || 0) })) : []
+    };
+  }
+
+  function getSessionTimingMs(session) {
+    return Object.values(session && session.intervalTimeByInterval ? session.intervalTimeByInterval : {}).reduce((sum, value) => sum + Math.max(0, Number(value) || 0), 0);
+  }
+
+  function sumDayTrainedMs(day) { return Object.values(day.sessions || {}).reduce((sum, s) => sum + getSessionTimingMs(s), 0); }
+
+  function loadTrainingData() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === "object" && parsed.days && typeof parsed.days === "object") {
+        const next = { version: 2, days: {} };
+        for (const [dateKey, day] of Object.entries(parsed.days)) {
+          const migrated = { totalTrainedMs: 0, sessions: {} };
+          if (day && day.sessions && typeof day.sessions === "object") {
+            for (const [key, session] of Object.entries(day.sessions)) migrated.sessions[key] = migrateSession(session);
+          } else if (day && typeof day === "object") {
+            migrated.sessions[day.thresholdKey || "4-4"] = migrateSession({
+              totalTrainedMs: day.totalTrainedMs || 0,
+              intervalTimeByInterval: day.intervalTimeByInterval || {},
+              intervalCountsByInterval: day.intervalCountsByInterval || {},
+              intervalSamples: day.intervalSamples || []
+            });
+          }
+          migrated.totalTrainedMs = sumDayTrainedMs(migrated);
+          next.days[dateKey] = migrated;
+        }
+        trainingData = next;
+      }
+    } catch (err) { trainingData = { version: 2, days: {} }; }
+  }
+
+  function saveTrainingData() {
+    for (const day of Object.values(trainingData.days)) day.totalTrainedMs = sumDayTrainedMs(day);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trainingData));
+  }
+
+  function getDayRecord(dateKey, createIfMissing = false) {
+    if (!trainingData.days[dateKey] && createIfMissing) trainingData.days[dateKey] = { totalTrainedMs: 0, sessions: {} };
+    return trainingData.days[dateKey] || null;
+  }
+
+  function getSessionRecord(dayRecord, thresholdKey, createIfMissing = false) {
+    if (!dayRecord) return null;
+    if (!dayRecord.sessions) dayRecord.sessions = {};
+    if (!dayRecord.sessions[thresholdKey] && createIfMissing) dayRecord.sessions[thresholdKey] = migrateSession();
+    return dayRecord.sessions[thresholdKey] || null;
+  }
+
+  function getTrainedDatesSorted() {
+    return Object.keys(trainingData.days).filter(dateKey => {
+      const day = trainingData.days[dateKey];
+      return day && (sumDayTrainedMs(day) > 0 || Object.keys(day.sessions || {}).length > 0);
+    }).sort();
+  }
+
+  function dateKeyFromDate(date) { return localDateKey(date); }
+
+  function lerp(a, b, t) { return a + ((b - a) * t); }
+  function mixRgb(a, b, t) { return `rgb(${Math.round(lerp(a[0], b[0], t))}, ${Math.round(lerp(a[1], b[1], t))}, ${Math.round(lerp(a[2], b[2], t))})`; }
+
+  const progressColorStops = [
+    [255, 255, 255],
+    [255, 244, 244],
+    [255, 228, 228],
+    [255, 205, 205],
+    [255, 188, 165],
+    [255, 208, 130],
+    [242, 232, 122],
+    [170, 235, 168],
+    [146, 233, 255],
+    [174, 188, 255],
+    [203, 166, 255],
+    [255, 255, 255]
+  ];
+
+  function gradualProgressColor(index, cycleLength = 96) {
+    const safeIndex = Math.max(0, Number(index) || 0);
+    if (safeIndex === 0) return 'rgb(255, 255, 255)';
+    const span = progressColorStops.length - 1;
+    const pos = ((safeIndex % cycleLength) / cycleLength) * span;
+    const i = Math.min(span - 1, Math.floor(pos));
+    const t = pos - i;
+    return mixRgb(progressColorStops[i], progressColorStops[i + 1], t);
+  }
+
+  function getColorShift(index) { return gradualProgressColor(index); }
+  function getAccentColorForIndex(index) { return gradualProgressColor(index + 7); }
+  function getSessionKeys(day) { return Object.keys(day.sessions || {}).sort((a,b) => { const [ac,aw] = a.split('-').map(Number); const [bc,bw] = b.split('-').map(Number); return ac !== bc ? ac-bc : aw-bw; }); }
+  function getDayIndex(dateKey) { return getTrainedDatesSorted().indexOf(dateKey); }
+
+  function ensureAudioContext() {
+    if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioContext.state === "suspended") audioContext.resume().catch(() => {});
+  }
+
+  function updateFeedbackUI() {
+    const maxDots = Math.max(Math.max(1, parseInt(correctThresholdInput.value, 10) || 4), Math.max(1, parseInt(wrongThresholdInput.value, 10) || 4));
+    feedbackEl.innerHTML = "";
+    feedback.slice(-maxDots).forEach(isCorrect => {
+      const dot = document.createElement("span");
+      dot.classList.add("dot", isCorrect ? "green" : "red");
+      feedbackEl.appendChild(dot);
+    });
+  }
+
+  function getCurrentDayAggregate(includeLive = false) {
+    const day = getDayRecord(currentSessionDayKey, false);
+    const agg = { totalTrainedMs: 0, intervalTimeByInterval: {}, intervalCountsByInterval: {}, intervalSamples: [] };
+    if (day) {
+      for (const session of Object.values(day.sessions || {})) {
+        agg.totalTrainedMs += getSessionTimingMs(session);
+        for (const [k,v] of Object.entries(session.intervalTimeByInterval || {})) agg.intervalTimeByInterval[k] = (agg.intervalTimeByInterval[k] || 0) + Number(v || 0);
+        for (const [k,v] of Object.entries(session.intervalCountsByInterval || {})) agg.intervalCountsByInterval[k] = (agg.intervalCountsByInterval[k] || 0) + Number(v || 0);
+        agg.intervalSamples.push(...(session.intervalSamples || []));
+      }
+    }
+    if (includeLive && gameRunning && isIntervalCountable()) {
+      const elapsed = Math.max(0, Date.now() - sessionIntervalStartMs);
+      const key = String(interval);
+      agg.intervalTimeByInterval[key] = (agg.intervalTimeByInterval[key] || 0) + elapsed;
+    }
+    return agg;
+  }
+
+  function renderDailyStats() {
+    if (!showIntervalTimingInput.checked) { intervalStatsEl.innerHTML = ""; topRightStatEl.textContent = "Avg Today: --"; return; }
+    const agg = getCurrentDayAggregate(true);
+    const entries = Object.entries(agg.intervalTimeByInterval).map(([k,v]) => [Number(k), Number(v)]).filter(([,t]) => t > 0).sort((a,b) => b[0]-a[0]);
+    intervalStatsEl.innerHTML = "";
+    if (!entries.length) { topRightStatEl.textContent = "Avg Today: --"; return; }
+    let weightedSum = 0, totalTime = 0;
+    for (const [intervalKey, timeMs] of entries) {
+      const count = agg.intervalCountsByInterval[String(intervalKey)] || 0;
+      const div = document.createElement("div");
+      div.textContent = `${intervalKey} ms: ${count}   ${fmtSeconds(timeMs)}`;
+      intervalStatsEl.appendChild(div);
+      weightedSum += intervalKey * timeMs;
+      totalTime += timeMs;
+    }
+    topRightStatEl.textContent = totalTime > 0 ? `Avg Today: ${Math.round(weightedSum / totalTime)} ms` : "Avg Today: --";
+  }
+
+  function playBeep() {
+  if (!beepToggle.checked) return;
+  try {
+    ensureAudioContext();
+    const ctx = audioContext, osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = "sine"; osc.frequency.value = 1200; gain.gain.value = clamp(parseFloat(beepVolumeInput.value) || 0.1, 0, 1);
+    osc.connect(gain); gain.connect(ctx.destination); const now = ctx.currentTime; osc.start(now); osc.stop(now + 0.08);
+  } catch (e) {}
+}
+
+function getAutoVoiceRate() {
+  const intervalValue = clamp(Number(interval) || 1000, 200, 1000);
+  const normalized = (1000 - intervalValue) / 800;
+  return clamp(2.4 + (normalized * 4.2), 2.4, 6.6);
+}
+
+let speechQueue = [];
+let speechActive = false;
+let activeSpeechUtterance = null;
+
+function processSpeechQueue() {
+  if (speechActive) return;
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
+  if (!speechQueue.length) return;
+
+  const nextText = speechQueue.shift();
+  speechActive = true;
+  const utterance = new SpeechSynthesisUtterance(nextText);
+  activeSpeechUtterance = utterance;
+  utterance.lang = "en-US";
+  utterance.rate = getAutoVoiceRate();
+  utterance.pitch = 1;
+  utterance.volume = 1;
+  utterance.onerror = () => {
+    speechActive = false;
+    activeSpeechUtterance = null;
+    setTimeout(processSpeechQueue, 0);
+  };
+  utterance.onend = () => {
+    speechActive = false;
+    activeSpeechUtterance = null;
+    setTimeout(processSpeechQueue, 0);
+  };
+  try {
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    speechActive = false;
+    activeSpeechUtterance = null;
+  }
+}
+
+function speak(num) {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") return;
+  speechQueue.push(String(num));
+  processSpeechQueue();
+}
+
+function testVoice() { speak(Math.floor(Math.random() * 9) + 1); }
+function testBeep() { playBeep(); }
+function getRandomNumber() { return Math.floor(Math.random() * 9) + 1; }
+
+  function buildAnswerButtons() { buttonAnswersEl.innerHTML = ""; for (let i = 2; i <= 18; i++) { const btn = document.createElement("button"); btn.type = "button"; btn.textContent = i; btn.addEventListener("click", () => { if (!gameRunning) return; checkAnswer(i); }); buttonAnswersEl.appendChild(btn); } }
+
+  function updateAnswerModeUI() { if (buttonMode) { answer.style.display = "none"; buttonAnswersEl.style.display = "flex"; } else { answer.style.display = "inline-block"; buttonAnswersEl.style.display = "none"; } }
+  function isIntervalCountable() { return interval !== startInterval || currentIntervalChangeCounted; }
+  function getCountableElapsedMs(now = Date.now()) { return Math.max(0, now - Math.max(sessionIntervalStartMs, sessionCountableStartMs)); }
+  function recordCurrentIntervalDuration(now = Date.now()) { if (!gameRunning || sessionIntervalStartMs === 0) return; const elapsed = getCountableElapsedMs(now); if (isIntervalCountable() && elapsed > 0) { const key = String(interval); intervalTimeByInterval[key] = (intervalTimeByInterval[key] || 0) + elapsed; } sessionIntervalStartMs = now; }
+  function addIntervalSample(intervalValue, elapsedMs) { if (!isIntervalCountable() || elapsedMs <= 0) return; intervalSamples.push({ interval: Number(intervalValue), elapsedMs: Number(elapsedMs) }); }
+
+  function getThresholds() { return { correct: Math.max(1, parseInt(correctThresholdInput.value, 10) || 4), wrong: Math.max(1, parseInt(wrongThresholdInput.value, 10) || 4) }; }
+
+  function persistSessionData() {
+    if (!gameRunning) return;
+    const day = getDayRecord(currentSessionDayKey, true);
+    const session = getSessionRecord(day, currentSessionThresholdKey, true);
+    if (!session) return;
+    session.totalTrainedMs = getSessionTimingMs(session);
+    for (const [k,v] of Object.entries(intervalTimeByInterval)) session.intervalTimeByInterval[k] = (session.intervalTimeByInterval[k] || 0) + Number(v || 0);
+    for (const [k,v] of Object.entries(intervalCountsByInterval)) session.intervalCountsByInterval[k] = (session.intervalCountsByInterval[k] || 0) + Number(v || 0);
+    session.intervalSamples = (session.intervalSamples || []).concat(intervalSamples);
+    intervalTimeByInterval = {}; intervalCountsByInterval = {}; intervalSamples = [];
+    day.totalTrainedMs = sumDayTrainedMs(day);
+    saveTrainingData();
+  }
+
+  function finalizeIntervalTracking() {
+    if (!gameRunning) return;
+    const now = Date.now();
+    const elapsed = getCountableElapsedMs(now);
+    if (isIntervalCountable() && elapsed > 0) { const key = String(interval); intervalTimeByInterval[key] = (intervalTimeByInterval[key] || 0) + elapsed; addIntervalSample(interval, elapsed); }
+    sessionIntervalStartMs = now;
+  }
+
+  function enterInterval(newInterval) {
+    const minInterval = Math.max(10, parseInt(minIntervalInput.value, 10) || 200);
+    const maxInterval = Math.max(minInterval, parseInt(maxIntervalInput.value, 10) || 1000);
+    const clamped = clamp(Math.round(newInterval), minInterval, maxInterval);
+    if (clamped === interval) return;
+    finalizeIntervalTracking();
+    if (interval === startInterval && clamped !== startInterval) currentIntervalChangeCounted = true;
+    interval = clamped; sessionIntervalStartMs = Date.now();
+    const intervalKey = String(interval); intervalCountsByInterval[intervalKey] = (intervalCountsByInterval[intervalKey] || 0) + 1;
+    currentIntervalEl.textContent = interval; persistSessionData(); renderDailyStats(); renderProgressView();
+  }
+
+  function adjustDifficulty() {
+    const thresholds = getThresholds();
+    const stepUp = Math.max(1, parseInt(intervalStepUpInput.value, 10) || defaultSettings.intervalStepUp);
+    const stepDown = Math.max(1, parseInt(intervalStepDownInput.value, 10) || defaultSettings.intervalStepDown);
+    const minInterval = Math.max(10, parseInt(minIntervalInput.value, 10) || defaultSettings.minInterval);
+    const maxInterval = Math.max(minInterval, parseInt(maxIntervalInput.value, 10) || defaultSettings.maxInterval);
+    if (correctStreak >= thresholds.correct) {
+      correctStreak = 0;
+      enterInterval(Math.max(minInterval, interval - stepDown));
+    }
+    if (wrongStreak >= thresholds.wrong) {
+      wrongStreak = 0;
+      enterInterval(Math.min(maxInterval, interval + stepUp));
+    }
+  }
+
+  function getCorrectSum() { return numbers.length < 2 ? null : numbers[numbers.length - 1] + numbers[numbers.length - 2]; }
+
+  function registerAnswer(isCorrect) {
+    feedback.push(Boolean(isCorrect));
+    if (isCorrect) { correctStreak += 1; wrongStreak = 0; if (sessionMode === "correct" && sessionCorrectRemaining > 0) sessionCorrectRemaining -= 1; }
+    else { wrongStreak += 1; correctStreak = 0; answer.value = ""; }
+    updateFeedbackUI();
+    if (!isCorrect) playBeep();
+    adjustDifficulty();
+    persistSessionData();
+    if (sessionMode === "correct" && isCorrect && sessionCorrectRemaining <= 0) stopGame();
+  }
+
+  function updateSessionDisplay() {
+    if (sessionMode === "correct") { timeLeftLabelEl.textContent = "Correct answers left:"; timeLeftEl.textContent = String(Math.max(0, sessionCorrectRemaining)); }
+    else { timeLeftLabelEl.textContent = "Time left:"; timeLeftEl.textContent = `${Math.max(0, Math.ceil((endTime - Date.now()) / 1000))}s`; }
+  }
+
+  function gameLoop() {
+    if (!gameRunning) return;
+    const now = Date.now();
+    if (awaitingAnswer && numbers.length >= 2) {
+      if (now >= sessionGraceUntilMs) registerAnswer(false);
+      else answer.value = "";
+      awaitingAnswer = false;
+    }
+    const num = getRandomNumber(); numbers.push(num); speak(num); ensureAudioContext(); awaitingAnswer = true; timeoutId = setTimeout(gameLoop, interval);
+  }
+
+  function updateTimer() {
+    if (!gameRunning) return;
+    if (sessionMode === "timer") { const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000)); timeLeftEl.textContent = `${remaining}s`; if (remaining <= 0) { stopGame(); return; } }
+    else { timeLeftEl.textContent = String(Math.max(0, sessionCorrectRemaining)); }
+    requestAnimationFrame(updateTimer);
+  }
+
+  function statsTicker() { if (!gameRunning) return; renderDailyStats(); statsTickId = window.setTimeout(statsTicker, 250); }
+
+  function startGame() {
+    ensureAudioContext(); if (timeoutId) clearTimeout(timeoutId); if (statsTickId) clearTimeout(statsTickId);
+    settings = normalizeSettings(getSettingsPayload()); saveSettings(); syncIntervalBounds(); updateSessionModeUI();
+    sessionMode = sessionModeInput.value === "correct" ? "correct" : "timer"; currentSessionThresholdKey = thresholdKeyFromSettings(settings); currentSessionDayKey = todayKey();
+    interval = clamp(parseInt(intervalInput.value, 10) || settings.interval, parseInt(minIntervalInput.value, 10), parseInt(maxIntervalInput.value, 10)); startInterval = interval;
+    beepEnabled = beepToggle.checked; buttonMode = buttonModeToggle.checked;
+    numbers = []; feedback = []; correctStreak = 0; wrongStreak = 0; awaitingAnswer = false; currentIntervalChangeCounted = false; intervalTimeByInterval = {}; intervalCountsByInterval = {}; intervalSamples = [];
+    gameRunning = true; sessionStartMs = Date.now(); sessionIntervalStartMs = Date.now(); sessionCountableStartMs = Date.now() + 3000; sessionGraceUntilMs = Date.now() + 3000;
+    if (sessionMode === "timer") { endTime = Date.now() + (Math.max(1, parseInt(durationInput.value, 10) || settings.duration) * 60000); }
+    else { sessionCorrectTarget = Math.max(1, parseInt(correctTargetInput.value, 10) || settings.correctTarget); sessionCorrectRemaining = sessionCorrectTarget; endTime = 0; }
+    getSessionRecord(getDayRecord(currentSessionDayKey, true), currentSessionThresholdKey, true);
+    answer.disabled = false; answer.value = ""; answer.focus(); currentIntervalEl.textContent = interval; updateAnswerModeUI(); updateFeedbackUI(); updateSessionDisplay(); renderDailyStats(); renderProgressView(); statsTicker(); timeoutId = setTimeout(gameLoop, 100); updateTimer(); saveTrainingData();
+  }
+
+  function stopGame() {
+    if (!gameRunning) return; gameRunning = false; clearTimeout(timeoutId); if (statsTickId) clearTimeout(statsTickId); finalizeIntervalTracking(); persistSessionData(); answer.disabled = true; awaitingAnswer = false; updateSessionDisplay(); renderDailyStats(); renderProgressView(); }
+
+  function checkAnswer(value) {
+    if (!gameRunning || !awaitingAnswer || numbers.length < 2) return; if (Date.now() < sessionGraceUntilMs) { answer.value = ""; return; } const correct = getCorrectSum(); if (correct === null) return; awaitingAnswer = false; answer.value = ""; registerAnswer(Number(value) === correct);
+  }
+
+  function checkInputLive() { if (!gameRunning || buttonMode || !awaitingAnswer || numbers.length < 2) return; if (Date.now() < sessionGraceUntilMs) { answer.value = ""; return; } const raw = answer.value.trim(); if (raw === "") return; const correct = getCorrectSum(); if (correct !== null && raw === String(correct)) checkAnswer(Number(raw)); }
+
+  function openDrawer(drawer) { drawer.classList.add("open"); drawer.setAttribute("aria-hidden", "false"); }
+  function closeDrawer(drawer) { drawer.classList.remove("open"); drawer.setAttribute("aria-hidden", "true"); }
+  function formatDateKey(dateKey) { return new Date(dateKey + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" }); }
+  function setSelectedProgressDate(dateKey) { selectedProgressDate = dateKey;  renderProgressView(); }
+
+  function buildCalendar() {
+    const year = progressMonth.getFullYear(), month = progressMonth.getMonth();
+    calendarMonthLabel.textContent = progressMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    calendarGrid.innerHTML = "";
+    dayNames.forEach(name => { const head = document.createElement("div"); head.className = "calendar-head"; head.textContent = name; calendarGrid.appendChild(head); });
+    const startDay = new Date(year, month, 1).getDay(); const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < startDay; i++) { const empty = document.createElement("div"); empty.className = "calendar-cell empty"; calendarGrid.appendChild(empty); }
+    const trainedDates = getTrainedDatesSorted();
+    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+      const cellDate = new Date(year, month, dayNum); const dateKey = dateKeyFromDate(cellDate); const day = getDayRecord(dateKey, false); const cell = document.createElement("button"); cell.type = "button"; cell.className = "calendar-cell";
+      if (dateKey === todayKey()) { cell.style.outline = "2px solid rgba(255,215,0,0.8)"; cell.style.outlineOffset = "1px"; }
+      const label = document.createElement("span"); label.className = "day-number"; label.textContent = String(dayNum); cell.appendChild(label);
+      if (day && sumDayTrainedMs(day) > 0) { const idx = Math.max(0, trainedDates.indexOf(dateKey)); cell.classList.add("has-data"); cell.style.background = getCalendarColor(idx); cell.style.color = "#f3fff6"; cell.title = `${formatDateKey(dateKey)} — trained`; }
+      else cell.title = formatDateKey(dateKey);
+      if (selectedProgressDate === dateKey) cell.classList.add("selected");
+      cell.addEventListener("click", () => setSelectedProgressDate(dateKey)); calendarGrid.appendChild(cell);
+    }
+    progressDaysEl.textContent = String(trainedDates.length); 
+  }
+
+  function getDayAverage(session) {
+    const entries = Object.entries(session.intervalTimeByInterval || {}).map(([k, v]) => [Number(k), Number(v)]).filter(([, t]) => t > 0);
+    let weightedSum = 0, totalTime = 0;
+    for (const [intervalValue, timeMs] of entries) {
+      weightedSum += intervalValue * timeMs;
+      totalTime += timeMs;
+    }
+    return totalTime > 0 ? Math.round(weightedSum / totalTime) : null;
+  }
+
+  function getCombinedChartColor(index) {
+  const cycleLength = 360;
+  const safeIndex = Math.max(0, Number(index) || 0);
+  const t = ((safeIndex % cycleLength) + cycleLength) % cycleLength / Math.max(1, cycleLength - 1);
+  const stops = [
+    [255, 255, 255],
+    [255, 248, 248],
+    [255, 236, 236],
+    [255, 220, 220],
+    [255, 198, 184],
+    [255, 175, 120],
+    [255, 206, 104],
+    [255, 236, 104],
+    [208, 240, 126],
+    [132, 230, 182],
+    [118, 218, 255],
+    [160, 168, 255],
+    [210, 154, 255],
+    [255, 255, 255]
+  ];
+  const scaled = t * (stops.length - 1);
+  const i = Math.min(stops.length - 2, Math.max(0, Math.floor(scaled)));
+  const frac = scaled - i;
+  const a = stops[i], b = stops[i + 1];
+  const r = Math.round(a[0] + (b[0] - a[0]) * frac);
+  const g = Math.round(a[1] + (b[1] - a[1]) * frac);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * frac);
+  return `rgb(${r}, ${g}, ${bl})`;
+}
+
+function getCalendarColor(index) {
+  return "linear-gradient(180deg, rgba(51, 227, 107, 0.56), rgba(51, 227, 107, 0.20))";
+}
+
+function getColorCycleForDay(index) {
+  return getCombinedChartColor(index);
+}
+
+  function getSelectedThresholdKeys() {
+    const checked = Array.from(aggregateThresholdListEl.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value);
+    return checked.length ? checked : getAllThresholdKeys();
+  }
+
+  function getAllThresholdKeys() {
+    const keys = new Set();
+    for (const day of Object.values(trainingData.days || {})) {
+      for (const key of Object.keys(day.sessions || {})) keys.add(key);
+    }
+    if (!keys.size) keys.add(thresholdKeyFromSettings(settings));
+    return Array.from(keys).sort((a, b) => {
+      const [ac, aw] = a.split('-').map(Number);
+      const [bc, bw] = b.split('-').map(Number);
+      return ac !== bc ? ac - bc : aw - bw;
+    });
+  }
+
+  function buildThresholdFilterList() {
+    const keys = getAllThresholdKeys();
+    const previous = new Set(Array.from(aggregateThresholdListEl.querySelectorAll('input[type="checkbox"]:checked')).map(el => el.value));
+    aggregateThresholdListEl.innerHTML = '';
+    keys.forEach(key => {
+      const id = `agg-${key}`;
+      const label = document.createElement('label');
+      label.className = 'threshold-filter-item';
+      label.setAttribute('for', id);
+      label.innerHTML = `<input type="checkbox" id="${id}" value="${key}" ${previous.size === 0 || previous.has(key) ? 'checked' : ''} /> <span>${key}</span>`;
+      aggregateThresholdListEl.appendChild(label);
+    });
+  }
+
+  function getLastSevenDaysAverageMs() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let total = 0;
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const key = dateKeyFromDate(date);
+      const day = getDayRecord(key, false);
+      total += day ? sumDayTrainedMs(day) : 0;
+    }
+    return total / 7;
+  }
+
+  function toSeriesTotals(samples) {
+    const totals = new Map();
+    for (const sample of samples || []) {
+      const intervalValue = Number(sample.interval);
+      const elapsedMs = Number(sample.elapsedMs);
+      if (!Number.isFinite(intervalValue) || !Number.isFinite(elapsedMs) || elapsedMs <= 0) continue;
+      totals.set(intervalValue, (totals.get(intervalValue) || 0) + elapsedMs);
+    }
+    return [...totals.entries()].map(([x, y]) => ({ x, y })).sort((a, b) => a.x - b.x);
+  }
+
+  function renderMultiDayChart(svg, seriesList, emptyMessage) {
+    const width = 640, height = 260, pad = { left: 54, right: 16, top: 18, bottom: 44 }, innerW = width - pad.left - pad.right, innerH = height - pad.top - pad.bottom;
+    const validSeries = seriesList.filter(s => s && s.points && s.points.length);
+    if (!validSeries.length) {
+      svg.innerHTML = `<rect x="0" y="0" width="640" height="260" fill="transparent"></rect><text x="320" y="130" text-anchor="middle" fill="#bdbdbd" font-size="14">${emptyMessage || 'No interval timing data.'}</text>`;
+      return;
+    }
+    const xValues = validSeries.flatMap(s => s.points.map(p => p.x));
+    const yValues = validSeries.flatMap(s => s.points.map(p => p.y));
+    const minX = Math.min(...xValues, parseInt(minIntervalInput.value, 10) || settings.minInterval);
+    const maxX = Math.max(...xValues, parseInt(maxIntervalInput.value, 10) || settings.maxInterval);
+    const maxY = Math.max(...yValues, 1);
+    const xScale = value => pad.left + ((value - minX) / Math.max(1, (maxX - minX))) * innerW;
+    const yScale = value => pad.top + innerH - ((value) / Math.max(1, maxY)) * innerH;
+    const gridLines = [];
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + (innerH / 4) * i;
+      gridLines.push(`<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.08)" />`);
+    }
+    for (let i = 0; i <= 4; i++) {
+      const x = pad.left + (innerW / 4) * i;
+      gridLines.push(`<line x1="${x.toFixed(1)}" y1="${pad.top}" x2="${x.toFixed(1)}" y2="${height - pad.bottom}" stroke="rgba(255,255,255,0.08)" />`);
+    }
+    const combinedTotals = new Map();
+    for (const s of validSeries) {
+      for (const p of s.points) combinedTotals.set(p.x, (combinedTotals.get(p.x) || 0) + p.y);
+    }
+    const combinedPoints = [...combinedTotals.entries()].map(([x, y]) => ({ x, y })).sort((a, b) => a.x - b.x);
+    const combinedLine = combinedPoints.length > 1 ? `<polyline points="${combinedPoints.map(p => `${xScale(p.x).toFixed(1)},${yScale(p.y).toFixed(1)}`).join(' ')}" fill="none" stroke="#efefef" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" opacity="0.85" />` : '';
+    const seriesMarkup = validSeries.map((s, idx) => {
+      const points = s.points.map(p => `${xScale(p.x).toFixed(1)},${yScale(p.y).toFixed(1)}`).join(' ');
+      const dots = s.points.map(p => `<circle cx="${xScale(p.x).toFixed(1)}" cy="${yScale(p.y).toFixed(1)}" r="4.5" fill="${s.color}" />`).join('');
+      return `<polyline points="${points}" fill="none" stroke="${s.color}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />${dots}`;
+    }).join('');
+    const xTicks = [...new Set([minX, ...xValues, maxX])].sort((a, b) => a - b).slice(0, 6);
+    const yTicks = [0, maxY / 4, maxY / 2, (3 * maxY) / 4, maxY];
+    const xLabels = xTicks.map(tick => `<text x="${xScale(tick).toFixed(1)}" y="${height - 18}" text-anchor="middle" fill="#cfcfcf" font-size="11">${tick}ms</text>`).join('');
+    const yLabels = yTicks.map(tick => `<text x="8" y="${(yScale(tick) + 4).toFixed(1)}" fill="#cfcfcf" font-size="11">${fmtSeconds(tick)}</text>`).join('');
+    svg.innerHTML = `<rect x="0" y="0" width="640" height="260" fill="transparent"></rect>${gridLines.join('')}${combinedLine}${seriesMarkup}${xLabels}${yLabels}<text x="320" y="246" text-anchor="middle" fill="#e3e3e3" font-size="12">Interval (ms)</text><text x="18" y="18" fill="#e3e3e3" font-size="12">Time spent</text>`;
+  }
+
+  function renderChartIntoSvg(svg, session, dateKey) {
+    const points = toSeriesTotals(session && session.intervalSamples ? session.intervalSamples : []);
+    renderMultiDayChart(svg, points.length ? [{ points, color: getColorCycleForDay(getDayIndex(dateKey)) || '#ffffff' }] : [], 'No interval timing data for this threshold.');
+  }
+
+  function renderAggregateChart() {
+    const selectedKeys = new Set(getSelectedThresholdKeys());
+    const days = getTrainedDatesSorted();
+    const seriesList = [];
+    days.forEach((dateKey, index) => {
+      const day = getDayRecord(dateKey, false);
+      if (!day) return;
+      const samples = [];
+      for (const [key, session] of Object.entries(day.sessions || {})) {
+        if (!selectedKeys.has(key)) continue;
+        samples.push(...(session.intervalSamples || []));
+      }
+      const points = toSeriesTotals(samples);
+      if (points.length) seriesList.push({ points, color: getColorCycleForDay(index) });
+    });
+    renderMultiDayChart(aggregateChart, seriesList, 'No interval timing data for the selected threshold groups.');
+  }
+
+  function setAllTimingTablesHidden(hidden) {
+    document.querySelectorAll('.day-timing-table').forEach(el => el.classList.toggle('hidden', hidden));
+    toggleAllTimingsBtn.textContent = hidden ? 'Show all interval timings' : 'Hide all interval timings';
+  }
+
+  function renderTimingRows(session) {
+    const samples = session && session.intervalSamples ? session.intervalSamples : [];
+    if (!samples.length) return `<tr><td colspan="2" style="color:#bdbdbd;">No saved timing samples for this threshold.</td></tr>`;
+    return samples.map(sample => `<tr><td>${fmtSeconds(sample.elapsedMs)}</td><td>${Number(sample.interval)} ms</td></tr>`).join('');
+  }
+
+  function renderProgressView() {
+    buildThresholdFilterList();
+    renderAggregateChart();
+    buildCalendar();
+    progressDaysEl.textContent = String(getTrainedDatesSorted().length);
+    weekAverageEl.textContent = fmtMinutes(getLastSevenDaysAverageMs());
+
+    const day = selectedProgressDate ? getDayRecord(selectedProgressDate, false) : null;
+    const hostId = 'threshold-groups-host';
+    let host = document.getElementById(hostId);
+    if (!host) {
+      host = document.createElement('div');
+      host.id = hostId;
+      daySummary.insertAdjacentElement('afterend', host);
+    }
+    host.innerHTML = '';
+
+    if (!selectedProgressDate || !day) {
+      daySummary.innerHTML = '<div class="hint">Tap a trained day to see its details.</div>';
+      intervalChart.innerHTML = '<rect x="0" y="0" width="640" height="260" fill="transparent"></rect><text x="320" y="130" text-anchor="middle" fill="#bdbdbd" font-size="14">No interval timing data for this day.</text>';
+      setAllTimingTablesHidden(true);
+      return;
+    }
+
+    const sessionKeys = getSessionKeys(day);
+    const dayTimingMs = sessionKeys.reduce((sum, key) => sum + getSessionTimingMs(day.sessions[key]), 0);
+    const allDaySamples = sessionKeys.flatMap(key => (day.sessions[key].intervalSamples || []));
+    const aggregatedPoints = toSeriesTotals(allDaySamples);
+    const avgInterval = aggregatedPoints.length ? Math.round(aggregatedPoints.reduce((sum, p) => sum + p.x * p.y, 0) / Math.max(1, aggregatedPoints.reduce((sum, p) => sum + p.y, 0))) : null;
+
+    daySummary.innerHTML = `
+      <div class="progress-summary" style="margin-top:0; margin-bottom: 0;">
+        <div class="summary-card"><span class="label">Time trained</span><span class="value">${fmtMinutes(dayTimingMs)}</span></div>
+        <div class="summary-card"><span class="label">Average interval</span><span class="value">${avgInterval !== null ? avgInterval + ' ms' : '--'}</span></div>
+        <div class="summary-card"><span class="label">Threshold groups</span><span class="value">${sessionKeys.length}</span></div>
+      </div>`;
+
+    renderChartIntoSvg(intervalChart, { intervalSamples: allDaySamples }, selectedProgressDate);
+
+    if (!sessionKeys.length) {
+      host.innerHTML = '<div class="hint">No saved timing samples for this day.</div>';
+      setAllTimingTablesHidden(true);
+      return;
+    }
+
+    host.innerHTML = sessionKeys.map((key, index) => {
+      const session = day.sessions[key];
+      const avg = getDayAverage(session);
+      const timingTotalMs = getSessionTimingMs(session);
+      const sampleCount = (session.intervalSamples || []).length;
+      const color = getAccentColorForIndex(getDayIndex(selectedProgressDate) + index);
+      return `
+        <div class="section" style="margin-top: 12px; border-color: ${color};">
+          <h3>${key} thresholds</h3>
+          <div class="hint">Separate timing bucket for this threshold pair.</div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0 12px;text-align:left;">
+            <div class="summary-card"><span class="label">Average interval</span><span class="value">${avg !== null ? avg + ' ms' : '--'}</span></div>
+            <div class="summary-card"><span class="label">Time trained</span><span class="value">${fmtMinutes(timingTotalMs)}</span></div>
+            <div class="summary-card"><span class="label">Samples</span><span class="value">${sampleCount}</span></div>
+          </div>
+          <div class="chart-wrap"><svg class="group-chart" data-session-key="${key}" viewBox="0 0 640 260" role="img" aria-label="Interval timing chart for ${key}"></svg></div>
+          <div class="table-wrap day-timing-table hidden">
+            <table class="data-table">
+              <thead><tr><th>Time spent</th><th>Interval</th></tr></thead>
+              <tbody>${renderTimingRows(session)}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+
+    host.querySelectorAll('.group-chart').forEach(svg => {
+      const key = svg.getAttribute('data-session-key');
+      const session = day.sessions[key];
+      renderChartIntoSvg(svg, session, selectedProgressDate);
+    });
+
+    setAllTimingTablesHidden(true);
+  }
+
+  function sumAllTrainedMs() { return Object.values(trainingData.days).reduce((sum, day) => sum + sumDayTrainedMs(day), 0); }
+  function moveMonth(offset) { progressMonth = new Date(progressMonth.getFullYear(), progressMonth.getMonth() + offset, 1); renderProgressView(); }
+
+  function handleSettingsChange() {
+    settings = normalizeSettings(getSettingsPayload()); saveSettings(); syncIntervalBounds(); updateSessionModeUI(); syncUIFromSettings(); renderDailyStats(); renderProgressView();
+  }
+
+  settingsBtn.addEventListener("click", () => openDrawer(settingsDrawer)); closeSettingsBtn.addEventListener("click", () => closeDrawer(settingsDrawer)); progressBtn.addEventListener("click", () => openDrawer(progressDrawer)); closeProgressBtn.addEventListener("click", () => closeDrawer(progressDrawer));
+  intervalInput.addEventListener("change", handleSettingsChange); durationInput.addEventListener("change", handleSettingsChange); correctTargetInput.addEventListener("change", handleSettingsChange); sessionModeInput.addEventListener("change", handleSettingsChange); intervalStepUpInput.addEventListener("change", handleSettingsChange); intervalStepDownInput.addEventListener("change", handleSettingsChange); beepToggle.addEventListener("change", handleSettingsChange); buttonModeToggle.addEventListener("change", () => { handleSettingsChange(); buttonMode = buttonModeToggle.checked; updateAnswerModeUI(); }); beepVolumeInput.addEventListener("input", handleSettingsChange); minIntervalInput.addEventListener("change", handleSettingsChange); maxIntervalInput.addEventListener("change", handleSettingsChange); showIntervalTimingInput.addEventListener("change", handleSettingsChange); correctThresholdInput.addEventListener("change", handleSettingsChange); wrongThresholdInput.addEventListener("change", handleSettingsChange);
+  testVoiceBtn.addEventListener("click", testVoice); testBeepBtn.addEventListener("click", testBeep);
+  startBtn.addEventListener("click", startGame); answer.addEventListener("input", checkInputLive); document.getElementById("prevMonthBtn").addEventListener("click", () => moveMonth(-1)); document.getElementById("nextMonthBtn").addEventListener("click", () => moveMonth(1));
+  aggregateThresholdListEl.addEventListener("change", () => renderProgressView());
+  toggleAllTimingsBtn.addEventListener("click", () => {
+    const shouldShow = document.querySelectorAll(".day-timing-table.hidden").length > 0;
+    setAllTimingTablesHidden(!shouldShow);
+  });
+  resetDataBtn.addEventListener("click", () => {
+    if (!confirm("Reset all progress data?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    trainingData = { version: 2, days: {} };
+    selectedProgressDate = todayKey();
+    progressMonth = new Date();
+    progressMonth.setDate(1);
+    buildThresholdFilterList();
+    renderDailyStats();
+    renderProgressView();
+    saveTrainingData();
+  });
+  showIntervalTimingInput.addEventListener("change", () => { syncUIFromSettings(); renderDailyStats(); saveSettings(); });
+  window.addEventListener("beforeunload", () => { if (gameRunning) { finalizeIntervalTracking(); persistSessionData(); } saveSettings(); saveTrainingData(); });
+
+  function init() {
+    loadSettings();
+    loadTrainingData();
+    buildAnswerButtons();
+    updateAnswerModeUI();
+    currentIntervalEl.textContent = intervalInput.value;
+    selectedProgressDate = getTrainedDatesSorted().slice(-1)[0] || todayKey();
+    const selectedDateObj = new Date(selectedProgressDate + "T00:00:00");
+    progressMonth = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), 1);
+    buildThresholdFilterList();
+    renderDailyStats();
+    renderProgressView();
+    syncUIFromSettings();
+    saveSettings();
+    saveTrainingData();
+  }
+
+  init();
+</script>
+</body>
+</html>
